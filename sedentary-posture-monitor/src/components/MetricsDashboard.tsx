@@ -10,19 +10,73 @@
  * - 久坐番茄钟提醒条
  */
 
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  BarChart, Bar, Cell,
 } from 'recharts';
 import { PostureMetric, SessionSummary } from '../types';
 import { Compass, Brain, ShieldAlert, Hourglass, Calendar } from 'lucide-react';
 import SedentaryTimer from './SedentaryTimer';
+import { isBadPostureMetric, labelToChinese, resolveMetricLabel, type PostureLabel } from '../lib/postureDisplay';
 
 interface MetricsDashboardProps {
   logs: PostureMetric[];
   currentMetric: PostureMetric;
   isWebcamActive?: boolean;
+}
+
+type RadarDatum = {
+  subject: string;
+  A: number;
+  fullMark: 100;
+};
+
+const RADAR_VIEWBOX = 240;
+const RADAR_CENTER = RADAR_VIEWBOX / 2;
+const RADAR_RADIUS = 76;
+const RADAR_LEVELS = [0.25, 0.5, 0.75, 1];
+const RADAR_LABEL_OFFSET = 22;
+
+export function buildRadarData(summary: SessionSummary): RadarDatum[] {
+  const neckScore = Math.max(10, Math.round(100 - (summary.neckAngleAvg * 2.5)));
+  const shoulderScore = Math.max(10, Math.round(100 - (summary.shoulderDiffAvg * 8)));
+  const eyeScore = Math.min(100, Math.max(10, Math.round((summary.distanceAvg / 75) * 100)));
+  const focusScore = summary.averageFocusScore;
+  const incidence = Math.max(10, Math.round(100 - ((summary.badPostureMinutes / (summary.totalMinutes || 1)) * 100)));
+  return [
+    { subject: '颈倾防护', A: neckScore, fullMark: 100 },
+    { subject: '双肩对称水平', A: shoulderScore, fullMark: 100 },
+    { subject: '睫状肌防红', A: eyeScore, fullMark: 100 },
+    { subject: '注视专注', A: focusScore, fullMark: 100 },
+    { subject: '正姿持续', A: incidence, fullMark: 100 },
+  ];
+}
+
+function radarPoint(index: number, total: number, radius: number, cx = RADAR_CENTER, cy = RADAR_CENTER) {
+  const angle = -Math.PI / 2 + (Math.PI * 2 * index) / total;
+  return {
+    x: cx + Math.cos(angle) * radius,
+    y: cy + Math.sin(angle) * radius,
+  };
+}
+
+function formatPoint(point: { x: number; y: number }) {
+  return `${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+}
+
+export function buildRadarPolygonPoints(
+  radarData: RadarDatum[],
+  cx = RADAR_CENTER,
+  cy = RADAR_CENTER,
+  radius = RADAR_RADIUS
+) {
+  return radarData
+    .map((item, idx) => {
+      const valueRadius = radius * Math.max(0, Math.min(100, item.A)) / item.fullMark;
+      return formatPoint(radarPoint(idx, radarData.length, valueRadius, cx, cy));
+    })
+    .join(' ');
 }
 
 export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }: MetricsDashboardProps) {
@@ -44,8 +98,8 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
     targetLogs.forEach(l => {
       neckSum += l.neckAngle; shoulderSum += l.shoulderDiff;
       distSum += l.screenDistance; focusSum += l.gazeFocus;
-      if ((l.finalLabel ?? l.modelLabel) === 'TUP') good++;
-      else { bad++; alert++; }
+      if (isBadPostureMetric(l)) { bad++; alert++; }
+      else good++;
     });
     const slouchedRatio = targetLogs.filter(l => l.isSlouched).length / total;
     const highLowRatio = targetLogs.filter(l => l.isHighLowShoulder).length / total;
@@ -65,21 +119,37 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
     };
   }, [logs]);
 
+  const postureClassData = useMemo(() => {
+    const labels: PostureLabel[] = ['TUP', 'TLF', 'TLB', 'TLR', 'TLL'];
+    const counts = labels.reduce((acc, label) => {
+      acc[label] = 0;
+      return acc;
+    }, {} as Record<PostureLabel, number>);
+
+    logs.slice(-120).forEach(log => {
+      const label = resolveMetricLabel(log);
+      if (label) counts[label]++;
+    });
+
+    const colors: Record<PostureLabel, string> = {
+      TUP: '#10b981',
+      TLF: '#38bdf8',
+      TLB: '#818cf8',
+      TLR: '#a855f7',
+      TLL: '#fb7185',
+    };
+
+    return labels.map(label => ({
+      label,
+      name: labelToChinese(label),
+      count: counts[label],
+      fill: colors[label],
+    }));
+  }, [logs]);
+
   // ============ 2. 雷达数据 ============
   const radarData = useMemo(() => {
-    const s = summary;
-    const neckScore = Math.max(10, Math.round(100 - (s.neckAngleAvg * 2.5)));
-    const shoulderScore = Math.max(10, Math.round(100 - (s.shoulderDiffAvg * 8)));
-    const eyeScore = Math.min(100, Math.max(10, Math.round((s.distanceAvg / 75) * 100)));
-    const focusScore = s.averageFocusScore;
-    const incidence = Math.max(10, Math.round(100 - ((s.badPostureMinutes / (s.totalMinutes || 1)) * 100)));
-    return [
-      { subject: '颈倾防护', A: neckScore, fullMark: 100 },
-      { subject: '双肩对称水平', A: shoulderScore, fullMark: 100 },
-      { subject: '睫状肌防红', A: eyeScore, fullMark: 100 },
-      { subject: '注视专注', A: focusScore, fullMark: 100 },
-      { subject: '正姿持续', A: incidence, fullMark: 100 },
-    ];
+    return buildRadarData(summary);
   }, [summary]);
 
   // ============ 3. 趋势曲线数据 ============
@@ -113,7 +183,7 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
       const dayIdx = 6 - dayDiff; // 让今天落在最右边
       const hr = d.getHours();
       buckets[dayIdx][hr].total++;
-      if ((l.finalLabel ?? l.modelLabel) !== 'TUP') buckets[dayIdx][hr].bad++;
+      if (isBadPostureMetric(l)) buckets[dayIdx][hr].bad++;
     });
 
     return buckets;
@@ -204,6 +274,32 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
         </div>
       </div>
 
+      {/* 历史体态分类 */}
+      <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl shadow-xl">
+        <div className="flex justify-between items-center mb-1">
+          <h3 className="text-sm font-semibold text-slate-200">历史体态分类分布</h3>
+          <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded text-emerald-400 font-mono uppercase">
+            finalLabel fallback
+          </span>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">优先统计后端保存的五分类判定；旧日志缺字段时用姿态状态与布尔标记兼容</p>
+        <div className="h-44 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={postureClassData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} />
+              <YAxis stroke="#64748b" fontSize={10} tickLine={false} allowDecimals={false} />
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }} itemStyle={{ fontSize: '11px' }} />
+              <Bar dataKey="count" name="记录数" radius={[5, 5, 0, 0]} isAnimationActive={false}>
+                {postureClassData.map(item => (
+                  <Cell key={item.label} fill={item.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* 趋势 + 雷达 */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-slate-900 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col">
@@ -260,25 +356,7 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-200 mb-1">五维体态雷达</h3>
-            <p className="text-xs text-slate-400">综合反映各姿态维度的代偿表现</p>
-          </div>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                <PolarGrid stroke="#334155" />
-                <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={9.5} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" fontSize={8} />
-                <Radar name="当前体态值" dataKey="A" stroke="#10b981" fill="#10b981" fillOpacity={0.25} isAnimationActive={false} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-[10px] bg-slate-950 border border-slate-800/50 p-2.5 rounded-xl text-center text-slate-400 leading-relaxed">
-            雷达面积越大代表综合体态越稳定；某项塌陷请查阅后续姿态建议页。
-          </div>
-        </div>
+        <RadarPanel radarData={radarData} />
       </div>
 
       {/* 时段热力图 */}
@@ -345,6 +423,100 @@ export default function MetricsDashboard({ logs, currentMetric, isWebcamActive }
 }
 
 // =================== 子组件 ===================
+
+const RadarPanel = memo(function RadarPanel({ radarData }: { radarData: RadarDatum[] }) {
+  const polygonPoints = useMemo(() => buildRadarPolygonPoints(radarData), [radarData]);
+
+  return (
+    <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-200 mb-1">五维体态雷达</h3>
+        <p className="text-xs text-slate-400">综合反映各姿态维度的代偿表现</p>
+      </div>
+      <div className="h-60 w-full">
+        <svg viewBox={`0 0 ${RADAR_VIEWBOX} ${RADAR_VIEWBOX}`} className="w-full h-full overflow-visible" role="img" aria-label="五维体态雷达">
+          <StaticRadarFrame subjects={radarData.map(item => item.subject)} />
+          <polygon
+            points={polygonPoints}
+            fill="#10b981"
+            fillOpacity={0.25}
+            stroke="#10b981"
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
+          {radarData.map((item, idx) => {
+            const point = radarPoint(idx, radarData.length, RADAR_RADIUS * Math.max(0, Math.min(100, item.A)) / item.fullMark);
+            return (
+              <circle key={item.subject} cx={point.x} cy={point.y} r={2.4} fill="#34d399" />
+            );
+          })}
+        </svg>
+      </div>
+      <div className="text-[10px] bg-slate-950 border border-slate-800/50 p-2.5 rounded-xl text-center text-slate-400 leading-relaxed">
+        雷达面积越大代表综合体态越稳定；某项塌陷请查阅后续姿态建议页。
+      </div>
+    </div>
+  );
+});
+
+const StaticRadarFrame = memo(function StaticRadarFrame({ subjects }: { subjects: string[] }) {
+  const outerPoints = subjects.map((_, idx) => radarPoint(idx, subjects.length, RADAR_RADIUS));
+  return (
+    <g>
+      {RADAR_LEVELS.map(level => (
+        <polygon
+          key={level}
+          points={outerPoints.map((_, idx) => formatPoint(radarPoint(idx, subjects.length, RADAR_RADIUS * level))).join(' ')}
+          fill="none"
+          stroke="#334155"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+      {outerPoints.map((point, idx) => (
+        <line
+          key={subjects[idx]}
+          x1={RADAR_CENTER}
+          y1={RADAR_CENTER}
+          x2={point.x}
+          y2={point.y}
+          stroke="#334155"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+      {[0, 50, 100].map(value => (
+        <text
+          key={value}
+          x={RADAR_CENTER + 4}
+          y={RADAR_CENTER - (RADAR_RADIUS * value / 100)}
+          fill="#64748b"
+          fontSize={8}
+          dominantBaseline="middle"
+        >
+          {value}
+        </text>
+      ))}
+      {subjects.map((subject, idx) => {
+        const point = radarPoint(idx, subjects.length, RADAR_RADIUS + RADAR_LABEL_OFFSET);
+        const anchor = Math.abs(point.x - RADAR_CENTER) < 2 ? 'middle' : point.x > RADAR_CENTER ? 'start' : 'end';
+        return (
+          <text
+            key={subject}
+            x={point.x}
+            y={point.y}
+            fill="#94a3b8"
+            fontSize={9.5}
+            textAnchor={anchor}
+            dominantBaseline="middle"
+          >
+            {subject}
+          </text>
+        );
+      })}
+    </g>
+  );
+});
 
 function KpiCard({
   icon, tone, title, value, valueClass, sub,

@@ -57,11 +57,22 @@ function getPresetLogs() {
         shoulderDiff: parseFloat(shoulderDiff.toFixed(1)),
         screenDistance: parseFloat(screenDistance.toFixed(0)),
         gazeFocus: Math.round(gazeFocus),
+        torsoTilt: 0,
+        headTilt: 0,
+        headDepthDelta: 0,
+        torsoDepthDelta: 0,
         isSlouched,
         isHighLowShoulder,
         isTooClose,
+        isTorsoTilted: isHighLowShoulder,
+        isForwardLeaning: isSlouched,
+        isBackwardLeaning: false,
         postureStatus: status,
-        activityState
+        activityState,
+        detectionSource: 'simulated',
+        confidence: 1,
+        modelLabel: status === 'good' ? 'TUP' : isSlouched || isTooClose ? 'TLF' : 'TLR',
+        finalLabel: status === 'good' ? 'TUP' : isSlouched || isTooClose ? 'TLF' : 'TLR',
       });
     }
   }
@@ -99,7 +110,28 @@ app.get('/api/logs', (req, res) => {
 
 // API 2: 上传一条新的体态记录
 app.post('/api/logs', (req, res) => {
-  const { neckAngle, shoulderDiff, screenDistance, gazeFocus, isSlouched, isHighLowShoulder, isTooClose, postureStatus, activityState } = req.body;
+  const {
+    neckAngle,
+    shoulderDiff,
+    screenDistance,
+    gazeFocus,
+    torsoTilt,
+    headTilt,
+    headDepthDelta,
+    torsoDepthDelta,
+    isSlouched,
+    isHighLowShoulder,
+    isTooClose,
+    isTorsoTilted,
+    isForwardLeaning,
+    isBackwardLeaning,
+    postureStatus,
+    activityState,
+    detectionSource,
+    confidence,
+    modelLabel,
+    finalLabel,
+  } = req.body;
   const newLog = {
     id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     timestamp: new Date().toISOString(),
@@ -107,11 +139,22 @@ app.post('/api/logs', (req, res) => {
     shoulderDiff: parseFloat(shoulderDiff),
     screenDistance: parseFloat(screenDistance),
     gazeFocus: parseInt(gazeFocus),
+    torsoTilt: torsoTilt === undefined ? undefined : parseFloat(torsoTilt),
+    headTilt: headTilt === undefined ? undefined : parseFloat(headTilt),
+    headDepthDelta: headDepthDelta === undefined ? undefined : parseFloat(headDepthDelta),
+    torsoDepthDelta: torsoDepthDelta === undefined ? undefined : parseFloat(torsoDepthDelta),
     isSlouched: !!isSlouched,
     isHighLowShoulder: !!isHighLowShoulder,
     isTooClose: !!isTooClose,
+    isTorsoTilted: !!isTorsoTilted,
+    isForwardLeaning: !!isForwardLeaning,
+    isBackwardLeaning: !!isBackwardLeaning,
     postureStatus: postureStatus || 'good',
-    activityState: activityState || 'focused'
+    activityState: activityState || 'focused',
+    detectionSource: detectionSource || 'mediapipe',
+    confidence: confidence === undefined ? undefined : parseFloat(confidence),
+    modelLabel,
+    finalLabel,
   };
   activeLogs.push(newLog);
   // 保留最近 1000 条监控数据，防止内存/大小过大

@@ -16,7 +16,7 @@
  * 每个不良类别 (slouch / shoulder / close / torso) 独立计时与冷却。
  */
 
-export type PostureClass = 'slouch' | 'shoulder' | 'close' | 'torso';
+export type PostureClass = 'slouch' | 'shoulder' | 'close' | 'torso' | 'backward';
 
 interface ClassState {
   badSince: number | null;     // 第一次连续检测到坏的时间戳
@@ -44,6 +44,7 @@ const CLASS_LABEL: Record<PostureClass, string> = {
   shoulder: '高低肩',
   close: '离屏过近',
   torso: '躯干侧倾',
+  backward: '后仰',
 };
 
 export class PostureStateMachine {
@@ -63,6 +64,7 @@ export class PostureStateMachine {
       shoulder: this.newClassState(),
       close: this.newClassState(),
       torso: this.newClassState(),
+      backward: this.newClassState(),
     };
   }
 
@@ -75,7 +77,13 @@ export class PostureStateMachine {
    * UI 上的"红色警示条"应该读 isAnyAlarming()，而 sound/notification 由本方法返回值触发
    */
   feed(input: {
-    flags: { isSlouched: boolean; isHighLowShoulder: boolean; isTooClose: boolean; isTorsoTilted: boolean };
+    flags: {
+      isSlouched: boolean;
+      isHighLowShoulder: boolean;
+      isTooClose: boolean;
+      isTorsoTilted: boolean;
+      isBackwardLeaning?: boolean;
+    };
     confidence: number;
     presence: boolean;
     timestamp?: number;
@@ -94,6 +102,7 @@ export class PostureStateMachine {
       shoulder: input.flags.isHighLowShoulder,
       close: input.flags.isTooClose,
       torso: input.flags.isTorsoTilted,
+      backward: !!input.flags.isBackwardLeaning,
     };
 
     const fired: PostureClass[] = [];

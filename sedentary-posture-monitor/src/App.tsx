@@ -10,7 +10,7 @@ import MetricsDashboard from './components/MetricsDashboard';
 import AiDoctorReport from './components/AiDoctorReport';
 import RoboflowReport from './components/RoboflowReport';
 import DocReport from './components/DocReport';
-import { toneTextClass, labelToChinese } from './lib/postureDisplay';
+import { toneTextClass, labelToChinese, resolveMetricLabel } from './lib/postureDisplay';
 import { 
   ShieldCheck, LayoutDashboard, BrainCircuit, Cpu, BookOpen, 
   Activity, RefreshCw, AlertCircle 
@@ -33,7 +33,11 @@ export default function App() {
     isForwardLeaning: false,
     isBackwardLeaning: false,
     postureStatus: 'good',
-    activityState: 'focused'
+    activityState: 'focused',
+    detectionSource: 'manual',
+    confidence: 1,
+    modelLabel: 'TUP',
+    finalLabel: 'TUP',
   });
 
   const [isWebcamActive, setIsWebcamActive] = useState(() => {
@@ -45,7 +49,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai' | 'roboflow' | 'docs'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<number>(0);
-  const detectionLabel = labelToChinese(currentMetric.finalLabel);
+  const currentDisplayLabel = resolveMetricLabel(currentMetric) ?? 'TUP';
+  const detectionLabel = labelToChinese(currentDisplayLabel);
 
   // 持久化 webcam 状态
   useEffect(() => {
@@ -132,7 +137,7 @@ export default function App() {
         <div className="flex items-center gap-3 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs font-mono min-w-[180px] justify-center">
           <span className="inline-flex rounded-full h-2 w-2 bg-emerald-500 shrink-0"></span>
           <span className="text-slate-500">体态判定:</span>
-          <span className={`font-semibold tracking-wide w-[72px] text-center ${toneTextClass(currentMetric.finalLabel === 'TUP' ? 'emerald' : currentMetric.finalLabel ? 'amber' : 'slate')}`}>
+          <span className={`font-semibold tracking-wide w-[72px] text-center ${toneTextClass(currentDisplayLabel === 'TUP' ? 'emerald' : 'amber')}`}>
             {detectionLabel}
           </span>
         </div>

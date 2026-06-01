@@ -40,7 +40,7 @@ import { drawSkeleton } from '../lib/skeletonRenderer';
 import { playChime, pushNotification, speak } from '../lib/notifier';
 import { PostureStateMachine, type AlarmEvent } from '../lib/postureStateMachine';
 import { sessionKeeper } from '../lib/sessionKeeper';
-import { toneClass, labelToChinese } from '../lib/postureDisplay';
+import { toneClass, labelToChinese, resolveDisplayLabel, resolveMetricLabel } from '../lib/postureDisplay';
 
 interface CameraWorkspaceProps {
   currentMetric: PostureMetric;
@@ -373,6 +373,7 @@ export default function CameraWorkspace({
           isHighLowShoulder: false,
           isTooClose: false,
           isTorsoTilted: false,
+          isBackwardLeaning: false,
         } : flags,
         confidence: snap.confidence,
         presence: snap.presence,
@@ -380,17 +381,17 @@ export default function CameraWorkspace({
 
       // 同步 UI 报警态
       const stableLabels = stateMachineRef.current.getStableLabels(Date.now());
-      const stableLabel = stableLabels[0] ?? 'TUP';
-      const machineAlarming = stableLabel === 'TUP' ? false : stateMachineRef.current.isAnyAlarming();
+      const displayLabel = resolveDisplayLabel(finalLabel, stableLabels);
+      const machineAlarming = displayLabel === 'TUP' ? false : stateMachineRef.current.isAnyAlarming();
       setAlarming(machineAlarming);
-      setAlarmText(stableLabel === 'TUP'
+      setAlarmText(displayLabel === 'TUP'
         ? ''
         : ({
             TLF: '前倾',
             TLB: '后仰',
             TLR: '右倾',
             TLL: '左倾',
-          } as const)[stableLabel as 'TLF' | 'TLB' | 'TLR' | 'TLL'] ?? '');
+          } as const)[displayLabel as 'TLF' | 'TLB' | 'TLR' | 'TLL'] ?? '');
 
       // 真正触发声音/通知 (状态机已经做了节流冷却)
       if (event) {
@@ -438,7 +439,7 @@ export default function CameraWorkspace({
           detectionSource: 'mediapipe',
           confidence: snap.confidence,
           modelLabel,
-          finalLabel: stableLabel,
+          finalLabel: displayLabel,
         });
       }
 
@@ -482,16 +483,17 @@ export default function CameraWorkspace({
     const isSlouched = neckSlide > 18;
     const isHighLowShoulder = shoulderSlide > 4.5;
     const isTooClose = distanceSlide < 45;
-        let postureStatus: 'good' | 'warning' | 'danger' = 'good';
-        if (isSlouched && isTooClose) postureStatus = 'danger';
-        else if (isSlouched || isHighLowShoulder || isTooClose) postureStatus = 'warning';
+    let postureStatus: 'good' | 'warning' | 'danger' = 'good';
+    if (isSlouched && isTooClose) postureStatus = 'danger';
+    else if (isSlouched || isHighLowShoulder || isTooClose) postureStatus = 'warning';
     let activityState: PostureMetric['activityState'] = 'focused';
     if (focusSlide < 40) activityState = 'distracted';
     else if (isSlouched && focusSlide < 65) activityState = 'tired';
+    const manualLabel = isSlouched || isTooClose ? 'TLF' : isHighLowShoulder ? 'TLR' : 'TUP';
 
-        onMetricChangeRef.current({
-          ...currentMetric,
-          timestamp: new Date().toISOString(),
+    onMetricChangeRef.current({
+      ...currentMetric,
+      timestamp: new Date().toISOString(),
         neckAngle: neckSlide,
         shoulderDiff: shoulderSlide,
         screenDistance: distanceSlide,
@@ -501,8 +503,11 @@ export default function CameraWorkspace({
         isForwardLeaning: false,
         isBackwardLeaning: false,
         postureStatus, activityState,
-          detectionSource: 'manual',
-        });
+        detectionSource: 'manual',
+        confidence: 1,
+        modelLabel: manualLabel,
+        finalLabel: manualLabel,
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [neckSlide, shoulderSlide, distanceSlide, focusSlide, isWebcamActive]);
 
@@ -577,6 +582,8 @@ export default function CameraWorkspace({
     setEngineStatus('idle');
   };
 
+  const currentDisplayLabel = resolveMetricLabel(currentMetric) ?? 'TUP';
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col h-full shadow-2xl relative overflow-hidden">
       {/* 引擎/FPS 指示 */}
@@ -646,7 +653,7 @@ export default function CameraWorkspace({
             <DebugCell label="颈倾角" value={`${(currentMetric.neckAngle ?? 0).toFixed(1)}°`} />
             <DebugCell label="头肩深度" value={formatSignedDepth(currentMetric.headDepthDelta)} />
             <DebugCell label="屏幕距离" value={`${(currentMetric.screenDistance ?? 0).toFixed(0)}cm`} />
-            <DebugCell label="体态判定" value={labelToChinese(currentMetric.finalLabel)} />
+            <DebugCell label="体态判定" value={labelToChinese(currentDisplayLabel)} />
             <DebugCell label="置信度" value={`${((currentMetric.confidence ?? 0) * 100).toFixed(0)}%`} />
             <DebugCell label="校准状态" value={calibrating ? `采样中 ${calibSamplesRef.current.length} 帧` : isCalibrated ? '已校准' : '未校准'} />
           </div>
@@ -783,11 +790,11 @@ export default function CameraWorkspace({
           </div>
         ) : isWebcamActive && engineStatus === 'ready' ? (
           <div className={`absolute bottom-3 right-3 z-20 border rounded-lg px-2.5 py-1 flex items-center gap-1.5 ${
-            toneClass(currentMetric.finalLabel === 'TUP' ? 'emerald' : currentMetric.finalLabel ? 'amber' : 'slate')
+            toneClass(currentDisplayLabel === 'TUP' ? 'emerald' : 'amber')
           }`}>
-            <CheckCircle className={`w-4 h-4 ${currentMetric.finalLabel === 'TUP' ? 'text-emerald-400' : currentMetric.finalLabel ? 'text-amber-400' : 'text-slate-400'}`} />
-            <span className={`text-[10.5px] font-medium ${currentMetric.finalLabel === 'TUP' ? 'text-emerald-200' : currentMetric.finalLabel ? 'text-amber-200' : 'text-slate-200'}`}>
-              体态判定：{labelToChinese(currentMetric.finalLabel)}
+            <CheckCircle className={`w-4 h-4 ${currentDisplayLabel === 'TUP' ? 'text-emerald-400' : 'text-amber-400'}`} />
+            <span className={`text-[10.5px] font-medium ${currentDisplayLabel === 'TUP' ? 'text-emerald-200' : 'text-amber-200'}`}>
+              体态判定：{labelToChinese(currentDisplayLabel)}
             </span>
           </div>
         ) : null}
