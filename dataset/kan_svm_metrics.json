@@ -1,0 +1,332 @@
+{
+  "global_validation": {
+    "kan": {
+      "accuracy": 0.9786666666666667,
+      "macro_f1": 0.9699388004895961,
+      "weighted_f1": 0.9788178974568202,
+      "cm": [
+        [
+          250,
+          0,
+          10,
+          0,
+          0
+        ],
+        [
+          0,
+          300,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          70,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          0,
+          54,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          60
+        ]
+      ],
+      "report": {
+        "TUP": {
+          "precision": 0.9765625,
+          "recall": 0.9615384615384616,
+          "f1-score": 0.9689922480620154,
+          "support": 260.0
+        },
+        "TLF": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 300.0
+        },
+        "TLB": {
+          "precision": 0.875,
+          "recall": 1.0,
+          "f1-score": 0.9333333333333333,
+          "support": 70.0
+        },
+        "TLR": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1-score": 0.9473684210526315,
+          "support": 60.0
+        },
+        "TLL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "accuracy": 0.9786666666666667,
+        "macro avg": {
+          "precision": 0.9703125,
+          "recall": 0.9723076923076924,
+          "f1-score": 0.9699388004895961,
+          "support": 750.0
+        },
+        "weighted avg": {
+          "precision": 0.9802083333333333,
+          "recall": 0.9786666666666667,
+          "f1-score": 0.9788178974568205,
+          "support": 750.0
+        }
+      }
+    },
+    "svm": {
+      "accuracy": 0.9893333333333333,
+      "macro_f1": 0.9846690306775473,
+      "weighted_f1": 0.9891693568804655,
+      "cm": [
+        [
+          258,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          300,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          70,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          0,
+          54,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          60
+        ]
+      ],
+      "report": {
+        "TUP": {
+          "precision": 0.9772727272727273,
+          "recall": 0.9923076923076923,
+          "f1-score": 0.9847328244274809,
+          "support": 260.0
+        },
+        "TLF": {
+          "precision": 0.9966777408637874,
+          "recall": 1.0,
+          "f1-score": 0.9983361064891847,
+          "support": 300.0
+        },
+        "TLB": {
+          "precision": 0.9859154929577465,
+          "recall": 1.0,
+          "f1-score": 0.9929078014184397,
+          "support": 70.0
+        },
+        "TLR": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1-score": 0.9473684210526315,
+          "support": 60.0
+        },
+        "TLL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "accuracy": 0.9893333333333333,
+        "macro avg": {
+          "precision": 0.9919731922188522,
+          "recall": 0.9784615384615385,
+          "f1-score": 0.9846690306775473,
+          "support": 750.0
+        },
+        "weighted avg": {
+          "precision": 0.9894777544761169,
+          "recall": 0.9893333333333333,
+          "f1-score": 0.9891693568804655,
+          "support": 750.0
+        }
+      }
+    },
+    "ensemble": {
+      "accuracy": 0.9826666666666667,
+      "macro_f1": 0.9749402407753488,
+      "weighted_f1": 0.9826616637933948,
+      "cm": [
+        [
+          253,
+          0,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          300,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          70,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          0,
+          54,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          60
+        ]
+      ],
+      "report": {
+        "TUP": {
+          "precision": 0.9768339768339769,
+          "recall": 0.9730769230769231,
+          "f1-score": 0.9749518304431599,
+          "support": 260.0
+        },
+        "TLF": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 300.0
+        },
+        "TLB": {
+          "precision": 0.9090909090909091,
+          "recall": 1.0,
+          "f1-score": 0.9523809523809523,
+          "support": 70.0
+        },
+        "TLR": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1-score": 0.9473684210526315,
+          "support": 60.0
+        },
+        "TLL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "accuracy": 0.9826666666666667,
+        "macro avg": {
+          "precision": 0.9771849771849773,
+          "recall": 0.9746153846153846,
+          "f1-score": 0.9749402407753486,
+          "support": 750.0
+        },
+        "weighted avg": {
+          "precision": 0.9834842634842634,
+          "recall": 0.9826666666666667,
+          "f1-score": 0.9826616637933948,
+          "support": 750.0
+        }
+      }
+    },
+    "best_epoch": 10,
+    "best_val_acc": 0.9786666666666667
+  },
+  "personalized_test": {
+    "subjects": [
+      {
+        "subject": 7,
+        "kan_acc": 0.8819444444444444,
+        "svm_acc": 0.8541666666666666,
+        "ensemble_acc": 0.8645833333333334,
+        "kan_macro_f1": 0.8278030795922794,
+        "svm_macro_f1": 0.7757683330091422,
+        "ensemble_macro_f1": 0.7978070827309455,
+        "eval_count": 288
+      },
+      {
+        "subject": 8,
+        "kan_acc": 0.9534883720930233,
+        "svm_acc": 0.9806201550387597,
+        "ensemble_acc": 0.9728682170542635,
+        "kan_macro_f1": 0.9697311139564662,
+        "svm_macro_f1": 0.986854836019084,
+        "ensemble_macro_f1": 0.9818223760092272,
+        "eval_count": 258
+      },
+      {
+        "subject": 9,
+        "kan_acc": 0.9760956175298805,
+        "svm_acc": 0.9681274900398407,
+        "ensemble_acc": 0.9840637450199203,
+        "kan_macro_f1": 0.9799029866802277,
+        "svm_macro_f1": 0.9744026806526808,
+        "ensemble_macro_f1": 0.9865733831879242,
+        "eval_count": 251
+      }
+    ],
+    "mean_accuracy": {
+      "kan": 0.9371761446891161,
+      "svm": 0.9343047705817557,
+      "ensemble": 0.9405050984691724
+    },
+    "mean_macro_f1": {
+      "kan": 0.9258123934096578,
+      "svm": 0.9123419498936357,
+      "ensemble": 0.9220676139760323
+    }
+  },
+  "split_counts": {
+    "global_train": 3204,
+    "global_val": 750,
+    "personal_calibration": 43,
+    "personal_eval": 797
+  },
+  "special_subjects": [
+    7,
+    8,
+    9
+  ],
+  "features": [
+    "neck_angle",
+    "head_depth_delta",
+    "depth_delta",
+    "torso_tilt",
+    "shoulder_diff",
+    "shoulder_width",
+    "signed_tilt"
+  ],
+  "model": "KAN + linear SVM"
+}

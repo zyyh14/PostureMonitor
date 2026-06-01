@@ -1,0 +1,6 @@
+{
+  "name": "久坐人群体态监测与可视化系统",
+  "description": "基于计算机视觉与实时分析的久坐体态监测、姿态评估及数据大屏系统，具备高低肩判定、颈部前倾评估、离屏度量、不良姿态报警、健康日报生成及 Roboflow 准确率分析报告。",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
